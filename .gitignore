@@ -1,0 +1,25 @@
+.DS_Store
+
+# SwiftPM
+/.build
+/Packages
+/*.xcodeproj
+.swiftpm/
+Package.resolved
+
+# Xcode
+xcuserdata/
+DerivedData/
+*.xcresult
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Signing material. Nothing of the sort belongs in this repo — the test fixtures generate key
+# pairs at runtime — but an ignore rule costs nothing and a leaked signing key costs everything.
+*.p12
+*.mobileprovision
+*.cer
+*.pem
+*.key

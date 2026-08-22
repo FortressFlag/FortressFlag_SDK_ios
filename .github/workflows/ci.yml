@@ -1,0 +1,188 @@
+# Continuous integration for the iOS client SDK.
+#
+# This workflow IS the merge gate described in Founding CLAUDE.md §7.5 and §9. It matters more here
+# than anywhere else in the system: we cannot recall a shipped SDK, so anything that gets past this
+# gate lives in customers' apps until they rebuild and ship on Apple's schedule.
+#
+# NOTE for whoever adds the branch ruleset: add these job names as required checks *after* this
+# file lands on `development` (COMPLIANCE-ACTIONS.md, "When FortressFlag_SDK_ios gets Swift code").
+# Requiring a check that has never reported blocks every merge permanently.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [development]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Build, lint & unit tests
+    # macOS because Swift Testing, CryptoKit and the Security framework are Apple-platform only.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select Xcode
+        # Pinned rather than "latest": a toolchain that changes under us turns an unrelated PR into
+        # a debugging session. Bumping it is its own reviewable change.
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Build
+        run: swift build -v
+
+      - name: Unit tests
+        run: swift test
+
+      - name: Strict concurrency
+        # The package already builds in Swift 6 language mode; this catches anything that slipped
+        # through as a warning rather than an error.
+        run: swift build -Xswiftc -strict-concurrency=complete
+
+      - name: SwiftLint
+        run: |
+          brew install swiftlint
+          swiftlint lint --strict
+
+  crash-primitives:
+    name: No crash primitives in Sources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Grep for crash primitives
+        # Deliberately a dumb grep, and deliberately separate from SwiftLint. The lint config is
+        # one pull request away from being relaxed with a plausible-looking justification; this is
+        # harder to weaken quietly, and a reviewer seeing it removed knows exactly what it meant.
+        #
+        # Swift cannot catch a trap, so this is prevention, not recovery: a force-unwrap that fires
+        # inside our code crashes the customer's app, and no amount of error handling above it
+        # helps (Founding §8.1).
+        run: |
+          if grep -rnE 'try!|fatalError|as!|precondition|unsafelyUnwrapped' Sources/; then
+            echo "::error::Crash primitives found in Sources/. The SDK must never be able to trap inside a customer's app."
+            exit 1
+          fi
+          echo "No crash primitives in Sources/."
+
+  device-tests:
+    name: Keychain & file-protection tests (simulator)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+
+      - name: Test on iOS Simulator
+        # The keychain and file-protection tests skip on a bare `swift test` host — a process with
+        # no application identifier cannot reach the data-protection keychain, and file protection
+        # classes are inert on macOS. They are the tests covering device identity, which is the
+        # billing primitive, so they have to actually run somewhere.
+        run: |
+          xcodebuild test \
+            -scheme FortressFlag-Package \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -resultBundlePath TestResults.xcresult \
+            | xcbeautify --renderer github-actions
+        env:
+          NSUnbufferedIO: YES
+
+  platforms:
+    name: Compiles for every supported platform
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        destination:
+          - 'generic/platform=iOS'
+          - 'generic/platform=iOS Simulator'
+          - 'generic/platform=macOS'
+          - 'generic/platform=visionOS'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+
+      - name: Build for ${{ matrix.destination }}
+        # A customer's multiplatform app must compile for every destination it targets. Finding out
+        # from a customer's build log that we broke visionOS is finding out too late.
+        run: |
+          xcodebuild build \
+            -scheme FortressFlag \
+            -destination '${{ matrix.destination }}' \
+            | xcbeautify --renderer github-actions
+
+  security:
+    name: Security scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # gitleaks needs history to scan commits, not just the working tree.
+          fetch-depth: 0
+
+      - name: gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          # SHA-256 of gitleaks_8.30.1_linux_x64.tar.gz, from the release's published
+          # checksums.txt. Pinning the version alone still trusts whatever bytes that URL serves
+          # on the day CI runs; this is what makes the download reproducible. Bump both lines
+          # together — a version bumped without its checksum fails loudly here, which is intended.
+          #
+          # Deliberately NOT gitleaks/gitleaks-action@v2. That action requires a paid licence for
+          # organisation-owned repositories, so it simply fails here — and a floating @v2 tag in
+          # the job whose entire subject is supply-chain hygiene is the wrong shape anyway. This
+          # matches FortressFlag_Backend's security job exactly.
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          # pipefail matters: without it a curl that dies mid-stream is masked by a tar that
+          # happens to succeed on the truncated prefix.
+          set -euo pipefail
+          curl -sSfL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum --check --strict -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          # Unpacked outside the checkout so the scanner never sees its own artefacts.
+          "$RUNNER_TEMP/gitleaks" git . --redact --no-banner
+
+      - name: No checked-in signing keys
+        # The test fixtures generate key pairs at runtime. A private key appearing in this repo
+        # would mean someone made signing convenient, which is how signing stops being worth
+        # anything.
+        run: |
+          if grep -rlE 'BEGIN (RSA |EC |OPENSSH |PGP )?PRIVATE KEY' . --exclude-dir=.git; then
+            echo "::error::A private key is checked into this repository."
+            exit 1
+          fi
+          echo "No private keys checked in."
+
+      - name: Privacy manifest present
+        # Apple requires this for third-party SDKs. Missing it fails App Store submission for every
+        # customer who embeds us — their release, blocked by our omission.
+        run: test -f Sources/FortressFlag/PrivacyInfo.xcprivacy
+
+      - name: Privacy manifest still declares no tracking
+        # NSPrivacyTracking: false is a product commitment: it is what lets customers embed us
+        # without an App Tracking Transparency prompt. Flipping it is a decision, never a diff
+        # nobody noticed.
+        #
+        # Grepped rather than parsed with plutil so this runs on the Linux runner alongside the
+        # other cheap checks — it is a two-line assertion, not worth a macOS minute.
+        run: |
+          if ! grep -A1 '<key>NSPrivacyTracking</key>' Sources/FortressFlag/PrivacyInfo.xcprivacy | grep -q '<false/>'; then
+            echo "::error::PrivacyInfo.xcprivacy no longer declares NSPrivacyTracking: false."
+            exit 1
+          fi
+          echo "Privacy manifest declares no tracking."

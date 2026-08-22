@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+        NSPrivacyTracking = false is a product commitment, not just a technical fact.
+
+        It is what lets a customer embed FortressFlag without triggering an App Tracking
+        Transparency prompt, and it is true because of how the device identity is built: 128 bits
+        of CSPRNG output, never derived from IDFA/IDFV/hardware identifiers, never joined with data
+        from any other company, never used for advertising or measurement. If any of that ever
+        changes, this key changes with it in the same pull request — a stale "false" here is a
+        misrepresentation to Apple and to every end user of every app we ship inside.
+    -->
+    <key>NSPrivacyTracking</key>
+    <false/>
+
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array>
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeDeviceID</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+    </array>
+
+    <!--
+        Empty, and kept that way deliberately.
+
+        The SDK stores nothing in UserDefaults (CA92.1) and reads no file timestamps (C617.1). Both
+        would be declarable here, but the cheaper answer is not to use them: every required-reason
+        API we adopt is one every customer has to justify in their own app's manifest.
+    -->
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array/>
+</dict>
+</plist>

@@ -1,0 +1,118 @@
+# SwiftLint configuration.
+#
+# The rules that matter here are the ones enforcing "the SDK never crashes the host app"
+# (Founding CLAUDE.md §8.1). They are errors, not warnings: a warning in a library that ships
+# inside other people's apps is a warning nobody reads.
+#
+# CI also runs a plain grep for the same primitives. That is not redundancy for its own sake — this
+# config is one pull request away from being relaxed, and the grep is harder to weaken quietly.
+
+included:
+  - Sources
+  - Tests
+
+excluded:
+  - .build
+
+analyzer_rules:
+  - unused_import
+
+disabled_rules:
+  # `Bool?` is load-bearing in this SDK, so `discouraged_optional_boolean` is actively wrong here
+  # and was opted into without thinking. `Resolver.resolve(developerDefault: Bool?)` has to tell
+  # "the caller supplied no default" apart from "the caller supplied false" — collapsing those is
+  # the exact bug the fallback cascade exists to avoid, and it is the same distinction the backend
+  # draws with `Enabled *bool` on its PATCH body. A lint rule that forbids expressing it would push
+  # the design toward the wrong shape.
+  - discouraged_optional_boolean
+
+opt_in_rules:
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - empty_count
+  - first_where
+  - last_where
+  - contains_over_first_not_nil
+  - redundant_nil_coalescing
+  - toggle_bool
+  - unavailable_function
+  - explicit_init
+  - closure_spacing
+  - operator_usage_whitespace
+  - overridden_super_call
+  - prohibited_super_call
+  - fatal_error_message
+  - private_action
+  - private_outlet
+  - sorted_first_last
+  - untyped_error_in_catch
+  - yoda_condition
+
+# --- The no-crash rules ---
+force_cast:
+  severity: error
+force_try:
+  severity: error
+force_unwrapping:
+  severity: error
+implicitly_unwrapped_optional:
+  severity: error
+
+# Trailing commas in multi-line literals are REQUIRED rather than forbidden. Adding an element then
+# shows up as one added line instead of two changed ones, which matters most in exactly the places
+# this codebase uses them: the grant matrices and truth tables, where a reviewer is checking what
+# changed rather than reading the whole literal.
+trailing_comma:
+  mandatory_comma: true
+
+line_length:
+  warning: 110
+  error: 140
+  ignores_comments: false
+  ignores_urls: true
+
+type_body_length:
+  warning: 350
+  error: 500
+
+file_length:
+  warning: 500
+  error: 800
+  ignore_comment_only_lines: true
+
+function_body_length:
+  warning: 60
+  error: 100
+
+cyclomatic_complexity:
+  warning: 12
+  error: 20
+
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  excluded: [id, a, b, v]
+
+nesting:
+  type_level: 2
+
+custom_rules:
+  no_print:
+    name: "No print()"
+    regex: '(^|[^A-Za-z0-9_.])print\('
+    message: "Use the Log type. print() writes to the host app's console and cannot be silenced by a customer."
+    severity: error
+    match_kinds: [identifier]
+
+  no_shared_url_session:
+    name: "No URLSession.shared"
+    regex: 'URLSession\.shared'
+    message: "The SDK must own its session. URLSession.shared shares cookies, credentials and cache with the host app."
+    severity: error
+
+  no_user_defaults:
+    name: "No UserDefaults"
+    regex: 'UserDefaults'
+    message: "UserDefaults is a required-reason API and would add an entry to every customer's privacy manifest. Use the file cache."
+    severity: error

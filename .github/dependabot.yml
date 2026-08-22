@@ -1,0 +1,24 @@
+# Automated dependency updates.
+#
+# SOC 2 (CC7.1) asks for a *process* that finds and remediates vulnerable components, not just a
+# scanner that reports them.
+#
+# Only GitHub Actions for now: there is no Swift code here yet, and therefore no Package.swift for
+# Dependabot's `swift` ecosystem to read. Add that entry alongside the first dependency — though
+# note that Founding §8.1 wants SDKs dependency-light, and a client SDK embedded in someone else's
+# app is the worst place in the system to take on supply-chain surface. The best outcome is that
+# this entry never becomes necessary.
+
+version: 2
+updates:
+  # The workflow itself is a dependency. A compromised or abandoned action runs with our token —
+  # and in a repository that will eventually sign and publish a distributable artifact.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, ci]
+    groups:
+      actions:
+        patterns: ["*"]
