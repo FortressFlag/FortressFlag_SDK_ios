@@ -28,7 +28,7 @@ jobs:
     # macOS because Swift Testing, CryptoKit and the Security framework are Apple-platform only.
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Select Xcode
         # Pinned rather than "latest": a toolchain that changes under us turns an unrelated PR into
@@ -58,7 +58,7 @@ jobs:
     name: No crash primitives in Sources
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Grep for crash primitives
         # Deliberately a dumb grep, and deliberately separate from SwiftLint. The lint config is
@@ -79,7 +79,7 @@ jobs:
     name: Keychain & file-protection tests (simulator)
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
@@ -110,7 +110,7 @@ jobs:
           - 'generic/platform=macOS'
           - 'generic/platform=visionOS'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
@@ -128,7 +128,7 @@ jobs:
     name: Security scanning
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           # gitleaks needs history to scan commits, not just the working tree.
           fetch-depth: 0
