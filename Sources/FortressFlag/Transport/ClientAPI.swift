@@ -42,7 +42,7 @@ protocol ClientAPI: Sendable {
 /// Identifies this SDK build to the server. Sent so that a server-side bug affecting one SDK
 /// version can be found without asking customers what they shipped.
 enum SDKInfo {
-    static let version = "0.1.0"
+    static let version = "1.0.0"
     static let platform = "ios"
     static var userAgent: String { "\(platform)/\(version)" }
 }

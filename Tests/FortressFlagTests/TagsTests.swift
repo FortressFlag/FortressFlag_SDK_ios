@@ -258,7 +258,7 @@ struct TagTransportTests {
         let (client, store) = makeClient(
             api: api,
             configTags: ["cohort": "beta"],
-            builtin: ["platform": "ios", "sdkVersion": "0.1.0"]
+            builtin: ["platform": "ios", "sdkVersion": "1.0.0"]
         )
 
         await client.start(restoredETag: nil)
