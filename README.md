@@ -6,8 +6,9 @@ for one device, and gets out of the way.
 > **Status: pre-release.** The public API, evaluation cascade, device identity, durable cache and
 > transport are implemented and tested, and the SDK runs against the backend's client API
 > (`GET /v1/client/flags`, see [`docs/contract-v1.md`](docs/contract-v1.md)) on a local
-> development stack. There is no production edge yet, and payload signing (M4) has not landed —
-> local development uses `SignaturePolicy.disabled` explicitly.
+> development stack. There is no production edge yet. Payloads are signed (backend ADR-0025) and
+> the SDK ships the production public key; a local backend started without signing keys serves
+> unsigned payloads, which needs `SignaturePolicy.disabled` explicitly.
 
 ## The promise
 

@@ -49,6 +49,8 @@ let package = Package(
         .testTarget(
             name: "FortressFlagTests",
             dependencies: ["FortressFlag", "FortressFlagTestKit"],
+            // Cross-SDK vectors from FortressFlag_Standards, vendored byte-for-byte.
+            resources: [.copy("Vectors")],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .testTarget(

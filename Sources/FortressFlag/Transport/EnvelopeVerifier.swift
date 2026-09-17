@@ -106,8 +106,8 @@ enum EnvelopeVerifier {
     ) -> EnvelopeRejection? {
         guard let sig else { return .missingSignature }
 
-        // `algorithm:keyID:signature`. Split with a limit so a key ID may contain a colon later
-        // without this becoming a breaking parse change.
+        // `algorithm:keyID:signature`, split at the first two colons: the SIGNATURE part may
+        // carry extra colons, the key ID never can (contract-v1 §Signing keys, `[a-z0-9-]+`).
         let parts = sig.split(separator: ":", maxSplits: 2, omittingEmptySubsequences: false)
         guard parts.count == 3 else { return .malformedSignature }
 

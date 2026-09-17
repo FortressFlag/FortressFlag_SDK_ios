@@ -33,3 +33,24 @@ enum Base64URL {
         return Data(base64Encoded: standard)
     }
 }
+
+extension Data {
+    /// Decodes a hex literal into bytes, for the trusted-key constants. Malformed input yields
+    /// empty `Data`, which the verifier treats as `unknownKeyID` — never a trap in shipped code.
+    init(hexKey: String) {
+        var bytes: [UInt8] = []
+        bytes.reserveCapacity(hexKey.count / 2)
+        var index = hexKey.startIndex
+        while index < hexKey.endIndex {
+            guard let next = hexKey.index(index, offsetBy: 2, limitedBy: hexKey.endIndex),
+                  let byte = UInt8(hexKey[index..<next], radix: 16)
+            else {
+                self.init()
+                return
+            }
+            bytes.append(byte)
+            index = next
+        }
+        self.init(bytes)
+    }
+}
