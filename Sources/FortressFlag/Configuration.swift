@@ -77,14 +77,15 @@ public enum SignaturePolicy: Sendable {
     /// Reject any payload not signed by one of `trustedKeys`.
     case required(trustedKeys: TrustedKeys)
 
-    /// Accept unsigned payloads. Intended for local development against a backend that does not
-    /// hold signing keys yet. It is a named, greppable choice rather than a silent fallback so
-    /// that "why is this not verifying?" always has an answer in the customer's own source.
+    /// Accept unsigned payloads. Intended for local development against a backend started
+    /// without signing keys (`FF_SIGNING_*` unset), which serves envelopes with no `sig`. It is a
+    /// named, greppable choice rather than a silent fallback so that "why is this not verifying?"
+    /// always has an answer in the customer's own source.
     case disabled
 }
 
 /// Ed25519 public keys the SDK will accept payload signatures from, keyed by the key ID that
-/// appears in the `sig` header of an envelope.
+/// appears in the `sig` field of an envelope.
 ///
 /// Keyed rather than a bare list so that rotation is a publish, not an app release: the backend
 /// starts signing with `keyId` N+1 while SDKs in the wild already trust it.
@@ -96,12 +97,20 @@ public struct TrustedKeys: Sendable, Equatable {
         self.keysByID = keysByID
     }
 
-    /// The keys FortressFlag signs production payloads with.
+    /// The keys FortressFlag signs production payloads with (backend ADR-0025).
     ///
-    /// Empty until the backend's signing service exists. Empty means `SignaturePolicy.required`
-    /// rejects everything, which is the correct fail-closed behaviour for an unverifiable payload
-    /// — during local development use `.disabled` explicitly.
-    public static let fortressFlagProduction = TrustedKeys([:])
+    /// Raw 32-byte Ed25519 public keys; the same values are published in the customer docs
+    /// (`concepts/payload-signing`) and ADR-0025. Rotation adds key N+1 here one release before
+    /// the backend switches to it (contract-v1 §Key rotation). Staging signs with a different key
+    /// — a build that targets staging passes it explicitly. Never make this empty: `.required`
+    /// with no keys rejects every payload.
+    public static let fortressFlagProduction = TrustedKeys([
+        // prod-2026-09-k1 (ADR-0025, minted 2026-09-16)
+        // base64url EaEF8MHNu3onHxemTg3-OcrKrq7ODsZIVEp-IVV2ojg
+        "prod-2026-09-k1": Data(
+            // A PUBLIC key; the scanner's generic rule matches any 64-hex literal near "key".
+            hexKey: "11a105f0c1cdbb7a271f17a64e0dfe39cacaaeaece0ec648544a7e215576a238"), // gitleaks:allow
+    ])
 
     public var isEmpty: Bool { keysByID.isEmpty }
 }

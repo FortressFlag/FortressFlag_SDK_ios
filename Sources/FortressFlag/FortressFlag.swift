@@ -50,7 +50,13 @@ public enum FortressFlag {
         let log = Log(policy: configuration.logging, category: "client")
 
         for problem in configuration.validate() {
-            log.warning("configuration problem — \(problem)")
+            // An empty trust store under `.required` is a misconfiguration since the production
+            // key shipped (ADR-0025): every payload is rejected, so it is an error, not a note.
+            if problem == .signatureRequiredButNoTrustedKeys {
+                log.error("configuration problem — \(problem)")
+            } else {
+                log.warning("configuration problem — \(problem)")
+            }
         }
 
         let identity = KeychainDeviceIdentity(
