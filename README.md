@@ -3,12 +3,16 @@
 The iOS client SDK for [FortressFlag](https://github.com/FortressFlag). Reads feature flag values
 for one device, and gets out of the way.
 
-> **Status: pre-release.** The public API, evaluation cascade, device identity, durable cache and
-> transport are implemented and tested, and the SDK runs against the backend's client API
-> (`GET /v1/client/flags`, see [`docs/contract-v1.md`](docs/contract-v1.md)) on a local
-> development stack. There is no production edge yet. Payloads are signed (backend ADR-0025) and
-> the SDK ships the production public key; a local backend started without signing keys serves
-> unsigned payloads, which needs `SignaturePolicy.disabled` explicitly.
+> **ADR-nnnn** refers to FortressFlag's internal architecture decision records. The public
+> contract every SDK implements is `FortressFlag_Standards`; decision records are not published.
+
+> **v1.0.0 — first public release.** The public API, evaluation cascade, device identity, durable
+> cache, transport and signature verification are complete and tested against the client
+> contract v1 and v2 (`GET /v1/client/flags`, see [`docs/contract-v1.md`](docs/contract-v1.md)).
+> The SDK is distributed from this repository via Swift Package Manager; registry publication is
+> a later step. Payloads are signed (backend ADR-0025) and the SDK ships the production public
+> key; a local backend started without signing keys serves unsigned payloads, which needs
+> `SignaturePolicy.disabled` explicitly.
 
 ## The promise
 
@@ -27,7 +31,7 @@ to decide *what someone is entitled to*. Entitlement checks belong on your serve
 ## Installation
 
 ```swift
-.package(url: "https://github.com/FortressFlag/FortressFlag_SDK_ios.git", from: "0.1.0")
+.package(url: "https://github.com/FortressFlag/FortressFlag_SDK_ios.git", from: "1.0.0")
 ```
 
 Requires iOS 17, macOS 14 or visionOS 1. No dependencies.
@@ -108,7 +112,7 @@ whose keys ship in your binary anyway — never flag names, descriptions, or oth
 `Examples/FlagListExample` is a minimal iOS app that renders `FlagListView` against the local
 backend, with zero configuration beyond having that backend running:
 
-1. Start the backend (`~/Workspace/FortressFlag_Backend`):
+1. Start the backend (the FortressFlag control plane, `FortressFlag_Backend`):
    `make db-up && make migrate && make seed && make dev`
 2. Open `Examples/FlagListExample/FlagListExample.xcodeproj` in Xcode.
 3. Pick any iOS Simulator and Run.

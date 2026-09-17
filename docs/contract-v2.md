@@ -1,8 +1,7 @@
 # Client contract v2 — moved
 
 > **Canonical copy:**
-> [`FortressFlag_Standards/contracts/contract-v2.md`](https://github.com/FortressFlag/FortressFlag_Standards/blob/development/contracts/contract-v2.md)
-> (local clone: `~/Workspace/FortressFlag_Standards/contracts/contract-v2.md`).
+> [`FortressFlag_Standards/contracts/contract-v2.md`](https://github.com/FortressFlag/FortressFlag_Standards/blob/development/contracts/contract-v2.md).
 >
 > Promoted there by backend ADR-0013 when Android became the contract's second consumer —
 > founding §5.2's own rule. Ownership is unchanged: **`FortressFlag_Backend` owns the

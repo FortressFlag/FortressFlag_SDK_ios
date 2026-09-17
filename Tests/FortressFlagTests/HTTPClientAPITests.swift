@@ -38,7 +38,7 @@ struct HTTPClientAPITests {
 
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer ffc_dev_testtesttesttest")
         #expect(request.value(forHTTPHeaderField: "X-FF-Device") == TestSupport.deviceID)
-        #expect(request.value(forHTTPHeaderField: "X-FF-SDK") == "ios/0.1.0")
+        #expect(request.value(forHTTPHeaderField: "X-FF-SDK") == "ios/1.0.0")
         #expect(request.value(forHTTPHeaderField: "If-None-Match") == "\"v4\"")
         #expect(request.httpMethod == "GET")
     }
