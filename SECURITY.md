@@ -6,9 +6,11 @@ compromise of FortressFlag is a compromise of every customer that trusts us (Fou
 
 ## Reporting a vulnerability
 
-**Use GitHub private vulnerability reporting:** open the repository's **Security** tab and choose
-**Report a vulnerability**. This creates a private advisory that only maintainers can see, so a
-report never sits in a public issue while it is still exploitable.
+**Email [security@fortressflag.com](mailto:security@fortressflag.com).** A person reads it, and the
+acknowledgement target below applies to it. If this repository is public you may instead use GitHub
+private vulnerability reporting: open the **Security** tab and choose **Report a vulnerability** —
+it creates a private advisory that only maintainers can see. Either way, a report never sits in a
+public issue while it is still exploitable.
 
 Please do not open a public issue, pull request, or discussion for a suspected vulnerability.
 
